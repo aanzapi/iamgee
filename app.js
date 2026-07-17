@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
@@ -9,9 +8,10 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ============ SUPABASE SETUP ============
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// ============ SUPABASE - HARDCODE DULU ============
+// GANTI DENGAN CREDENTIALS ANDA!
+const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
+const supabaseKey = 'YOUR_SERVICE_ROLE_KEY';
 
 console.log('🔍 Checking Supabase:');
 console.log('  URL:', supabaseUrl ? '✅ OK' : '❌ MISSING');
@@ -25,19 +25,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ============ MULTER SETUP ============
+// ============ MULTER ============
 const storage = multer.memoryStorage();
-
 const fileFilter = (req, file, cb) => {
   const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Format tidak didukung. Gunakan JPG, PNG, atau WEBP.'), false);
+    cb(new Error('Format tidak didukung'), false);
   }
 };
 
@@ -47,7 +45,7 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// ============ FUNGSI BANTU ============
+// ============ FUNGSI ============
 function generateFilename(originalname) {
   const ext = path.extname(originalname);
   const uuid = uuidv4().replace(/-/g, '');
@@ -56,10 +54,9 @@ function generateFilename(originalname) {
 
 // ============ ROUTES ============
 
-// Halaman Utama
+// Home
 app.get('/', async (req, res) => {
   try {
-    // Ambil semua gambar dari database
     const { data: images, error } = await supabase
       .from('images')
       .select('*')
@@ -71,7 +68,7 @@ app.get('/', async (req, res) => {
     res.render('index', {
       title: 'Image Hosting',
       images: images || [],
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+      baseUrl: 'https://aanzload.my.id', // GANTI DENGAN DOMAIN ANDA
       error: null
     });
   } catch (error) {
@@ -79,13 +76,13 @@ app.get('/', async (req, res) => {
     res.render('index', {
       title: 'Image Hosting',
       images: [],
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000',
-      error: 'Gagal memuat gambar'
+      baseUrl: 'https://aanzload.my.id',
+      error: error.message || 'Gagal memuat gambar'
     });
   }
 });
 
-// API Upload
+// Upload
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -94,9 +91,9 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
 
     const file = req.file;
     const filename = generateFilename(file.originalname);
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const baseUrl = 'https://aanzload.my.id'; // GANTI DENGAN DOMAIN ANDA
 
-    // Upload ke Supabase Storage
+    // Upload ke storage
     const { error: uploadError } = await supabase.storage
       .from('images')
       .upload(filename, file.buffer, {
@@ -106,7 +103,7 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
 
     if (uploadError) throw uploadError;
 
-    // Simpan metadata ke database
+    // Simpan metadata
     const { data, error: dbError } = await supabase
       .from('images')
       .insert([{
@@ -136,12 +133,11 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// Tampilkan Gambar
+// Tampilkan gambar
 app.get('/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
 
-    // Cek di database
     const { data: image, error } = await supabase
       .from('images')
       .select('*')
@@ -152,7 +148,6 @@ app.get('/:filename', async (req, res) => {
       return res.status(404).send('Gambar tidak ditemukan');
     }
 
-    // Download dari storage
     const { data, error: downloadError } = await supabase.storage
       .from('images')
       .download(filename);
@@ -169,12 +164,11 @@ app.get('/:filename', async (req, res) => {
   }
 });
 
-// Hapus Gambar (Admin)
+// Hapus gambar
 app.delete('/api/image/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Ambil data gambar
     const { data: image, error: getError } = await supabase
       .from('images')
       .select('*')
@@ -185,10 +179,7 @@ app.delete('/api/image/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Gambar tidak ditemukan' });
     }
 
-    // Hapus dari storage
     await supabase.storage.from('images').remove([image.filename]);
-
-    // Hapus dari database
     await supabase.from('images').delete().eq('id', id);
 
     res.json({ success: true, message: 'Gambar berhasil dihapus' });
@@ -199,19 +190,16 @@ app.delete('/api/image/:id', async (req, res) => {
   }
 });
 
-// Health Check
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    supabase: {
-      url: supabaseUrl ? 'configured' : 'missing'
-    }
+    supabase: supabaseUrl ? 'connected' : 'not configured'
   });
 });
 
-// ============ START SERVER ============
+// ============ START ============
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
