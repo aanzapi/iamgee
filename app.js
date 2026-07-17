@@ -10,9 +10,8 @@ const PORT = process.env.PORT || 3000;
 
 // ============ SUPABASE - HARDCODE DULU ============
 // GANTI DENGAN CREDENTIALS ANDA!
-const supabaseUrl = 'https://YOUR_PROJECT_ID.supabase.co';
-const supabaseKey = 'YOUR_SERVICE_ROLE_KEY';
-
+const supabaseUrl = 'https://fuwowjjjyzzwqogzpcfn.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1d293ampqeXp6d3FvZ3pwY2ZuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDI5NzY4MCwiZXhwIjoyMDk5ODczNjgwfQ.5-ucSAhRZRt5KuNouh04Nvv36alZVmE9Neo1GUnrpt0';
 console.log('🔍 Checking Supabase:');
 console.log('  URL:', supabaseUrl ? '✅ OK' : '❌ MISSING');
 console.log('  Key:', supabaseKey ? '✅ OK' : '❌ MISSING');
